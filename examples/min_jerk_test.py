@@ -1,4 +1,5 @@
-
+# tell ROS this is a Python script
+#!/usr/bin/env python
 
 # import libraries
 import numpy as np
@@ -13,6 +14,9 @@ from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.position_hl_commander import PositionHlCommander
+
+import rospy
+from std_msgs.msg import String
 
 ###############
 # GLOBAL VARS #
@@ -131,24 +135,49 @@ def followTrajectory(tf,dt):
      
 #    plt.show()
 
+################
+# FN:GET START #
+################
+def getStart(topic_name):
+
+    rospy.init_node('pathPlanner', anonymous=True)
+    rospy.Subscriber(topic_name, String)
+
+#################
+# FN:GET TARGET #
+#################
+def getTarget(topic_name):
+    rospy.Subscriber(topic_name, String)
 
 ########
 # MAIN #
 ########
  
 if __name__ == '__main__':
-    cflib.crtp.init_drivers(enable_debug_driver=False)
+    try:
+        cflib.crtp.init_drivers(enable_debug_driver=False)
 
-    with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
+        with SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache')) as scf:
 
-        cf = scf.cf
-        cf.param.set_value('kalman.resetEstimation','1')
-        time.sleep(0.1)
-        cf.param.set_value('kalman.resetEstimation','0')
-        time.sleep(2)
+            # reset the Crazyflie's kalman filter
+            cf = scf.cf
+            cf.param.set_value('kalman.resetEstimation','1')
+            time.sleep(0.1)
+            cf.param.set_value('kalman.resetEstimation','0')
+            time.sleep(2)
 
-        tf = 10.0 # [s] final time (and elapsed time, assuming t0 = 0)
-        dt = 0.5 # [s] delta t
-        followTrajectory(tf,dt)
+            # get the starting point and target point from Optitrack
+            topic_name = '/optitrack/rigid_bodies'
+            getStart(topic_name)
+            getTarget(topic_name)
 
-       #cf.commander.send_stop_setpoint()
+            # run the trajectory planner
+            tf = 10.0 # [s] elapsted time
+            dt = 0.5 # [s] timestep
+            followTrajectory(tf,dt)
+
+            # land the drone
+            cf.commander.send_stop_setpoint()
+
+    except rospy.ROSInterruptException:
+        pass
