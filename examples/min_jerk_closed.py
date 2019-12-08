@@ -263,6 +263,13 @@ if __name__ == '__main__':
                     adjStartPos = adjustStart(startData,targetData)
                     adjTargetPos = adjustTarget(targetData)
 
+                    # calculate the point where the two vehicles should meet
+                    # drone velocity = 0.4 m/s
+                    # ugv velocity = 0.8 m/s
+                    # distance = sqrt(dx^2 + dy^2 + dz^2)
+                    # time to cover distance = distance / (drone velocity + ugv velocity)
+                    # point = drone velocity * time = ugv velocity * time
+
                     print('start pos')
                     print(startData)
                     print('target pos')
