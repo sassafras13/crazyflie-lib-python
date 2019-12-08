@@ -95,6 +95,9 @@ def trajectory(coeffs, t):
 ########################
 
 def followTrajectory(tf,dt,adjStartPos,adjTargetPos):
+    eps_z = 0.1
+    eps_x = 0.05
+    eps_y = 0.05
     #print('i am in trajectory')
 
     # pull out position coordinates
@@ -133,16 +136,20 @@ def followTrajectory(tf,dt,adjStartPos,adjTargetPos):
     # send trajectory commands to crazyflie in a loop
     n = np.prod(t.shape)
 
-    for i in range(n-1):
-        #print('i am in trajectory loop')
-        dx = trajX[i+1] - trajX[i]
-        dy = trajY[i+1] - trajY[i]
-        dz = trajZ[i+1] - trajZ[i]
-        mc.move_distance(dx,dy,dz)
-        #cf.commander.send_position_setpoint(trajX[i], trajY[i], trajZ[i],0)
-        cf.commander.send_hover_setpoint(0,0,0,dz)
-        print(' x = ',dx,' y = ',dy,' z = ',dz,'\n')
-        time.sleep(dt)
+    dx = trajX[1] - trajX[0]
+    dy = trajY[1] - trajY[0]
+    dz = trajZ[1] - trajZ[0]
+    mc.move_distance(dx,dy,dz)
+    #cf.commander.send_position_setpoint(trajX[i], trajY[i], trajZ[i],0)
+    cf.commander.send_hover_setpoint(0,0,0,dz)
+    print(' x = ',dx,' y = ',dy,' z = ',dz,'\n')
+    
+    if abs(dx) < eps_x and abs(dy) < eps_y and abs(dz) < eps_z:
+        flag = True
+    else: 
+        flag = False
+
+    return flag
      
 
 #####################
@@ -235,44 +242,50 @@ if __name__ == '__main__':
             with MotionCommander(scf) as mc: 
                 mc.move_distance(0,0,height,velocity) # (x,y,z,velocity)
 
-                for _ in range(50):
+                for _ in range(10):
                     cf.commander.send_hover_setpoint(0,0,0,height)
                     print('i am hovering')
                     time.sleep(0.1)
 
-                # get the starting point and target point from Optitrack
-                topic_name = '/optitrack/rigid_bodies'
-                startData = getStartData(topic_name)
-                targetData = getTargetData(topic_name)
+                # mc.left(5.0,velocity)
 
-                # shift the coordinate system so startPos is the origin
-                # get targetPos relative to startPos
-                adjStartPos = adjustStart(startData,targetData)
-                adjTargetPos = adjustTarget(targetData)
+                landed_flag = False;
 
-                print('start pos')
-                print(startData)
-                print('target pos')
-                print(targetData)
+                while landed_flag == False:
 
-                print('adj start pos') 
-                print(adjStartPos)
-                print('adj target pos')
-                print(adjTargetPos)
+                    # get the starting point and target point from Optitrack
+                    topic_name = '/optitrack/rigid_bodies'
+                    startData = getStartData(topic_name)
+                    targetData = getTargetData(topic_name)
 
-                # yaw = startData[3]
-                # rate = 10.0 # deg/sec 
-                # print('yaw')
-                # print(yaw)
+                    # shift the coordinate system so startPos is the origin
+                    # get targetPos relative to startPos
+                    adjStartPos = adjustStart(startData,targetData)
+                    adjTargetPos = adjustTarget(targetData)
 
-                # run the trajectory planner
-                tf = 10.0 # [s] elapsed time
-                dt = 0.5 # [s] timestep
+                    print('start pos')
+                    print(startData)
+                    print('target pos')
+                    print(targetData)
 
-                # rotate so the Crazyflie is aligned to the Optitrack system
-                # mc.turn_left(yaw,rate)                
+                    print('adj start pos') 
+                    print(adjStartPos)
+                    print('adj target pos')
+                    print(adjTargetPos)
 
-                followTrajectory(tf,dt,adjStartPos,adjTargetPos)
+                    # yaw = startData[3]
+                    # rate = 10.0 # deg/sec 
+                    # print('yaw')
+                    # print(yaw)
+
+                    # run the trajectory planner
+                    tf = 3.0 # [s] elapsed time
+                    dt = 1.0 # [s] timestep
+
+                    # rotate so the Crazyflie is aligned to the Optitrack system
+                    # mc.turn_left(yaw,rate)                
+
+                    landed_flag = followTrajectory(tf,dt,adjStartPos,adjTargetPos)
 
 
     except rospy.ROSInterruptException:

@@ -60,6 +60,14 @@ zf_margin = 0.1 # [m] final position margin
 zdotf = 0 # [m/s] final velocity zdot
 zddotf = 0 # [m/s2] final accln zddot 
 
+#############
+# SETUP LOG #
+#############
+# Reference: usermanual.wiki/Document/crazyflieGuide.1291615246/view
+dataLog = errorLog = pos_writer = log_timestamp = log_conf = Logger = None
+
+
+
 ###################
 # FN:COEFFICIENTS #
 ###################
@@ -123,25 +131,24 @@ def followTrajectory(tf,dt,adjStartPos,adjTargetPos):
     trajZ = trajectory(coeffZ, t)
 
     # generate a plot of trajectory
-    # fig = plt.figure()
-    # ax1 = fig.add_subplot(211, projection='3d')
-    # ax1.scatter(trajX, trajY, trajZ)
-    # ax1.set_xlabel('X')
-    # ax1.set_ylabel('Y')
-    # plt.show()
+    #fig = plt.figure()
+    #ax1 = fig.add_subplot(211, projection='3d')
+    #ax1.scatter(trajX, trajY, trajZ)
+    #ax1.set_xlabel('X')
+    #ax1.set_ylabel('Y')
+    #plt.show()
 
     # send trajectory commands to crazyflie in a loop
     n = np.prod(t.shape)
 
     for i in range(n-1):
         #print('i am in trajectory loop')
-        dx = trajX[i+1] - trajX[i]
+        dx = trajX[i+1] - trajX[i] 
         dy = trajY[i+1] - trajY[i]
         dz = trajZ[i+1] - trajZ[i]
-        mc.move_distance(dx,dy,dz)
-        #cf.commander.send_position_setpoint(trajX[i], trajY[i], trajZ[i],0)
-        cf.commander.send_hover_setpoint(0,0,0,dz)
-        print(' x = ',dx,' y = ',dy,' z = ',dz,'\n')
+        
+        cf.commander.send_position_setpoint(trajX[i], trajY[i], trajZ[i],0)
+        #print(' x = ',dx,' y = ',dy,' z = ',dz,'\n')
         time.sleep(dt)
      
 
@@ -153,13 +160,13 @@ def getStartData(topic_name):
     #print(data)
     #print(data.bodies[0].pose.position.x)
     x = data.bodies[0].pose.position.x
-    y = data.bodies[0].pose.position.y
-    z = data.bodies[0].pose.position.z
+    y = data.bodies[0].pose.position.z
+    z = data.bodies[0].pose.position.y
     # yaw
     quat_ori = data.bodies[0].pose.orientation
     ori_list = [quat_ori.x, quat_ori.y, quat_ori.z, quat_ori.w]
     (roll, pitch, yaw) = euler_from_quaternion(ori_list)
-    yaw = abs(yaw * (180. / 3.14159))
+    print(yaw)
     return [x,y,z,yaw]
 
 ######################
@@ -170,8 +177,8 @@ def getTargetData(topic_name):
     #print(data)
     #print(data.bodies[1].pose.position.x)
     x = data.bodies[1].pose.position.x
-    y = data.bodies[1].pose.position.y
-    z = data.bodies[1].pose.position.z
+    y = data.bodies[1].pose.position.z
+    z = data.bodies[1].pose.position.y
 
 
     return [x,y,z]
@@ -229,7 +236,7 @@ if __name__ == '__main__':
             cf.param.set_value('kalman.resetEstimation','0')
             time.sleep(2)
 
-            height = 0.7 # 0.1m is min height it can hold 
+            height = 0.1 # 0.1m is min height it can hold 
             velocity = 0.4 
 
             with MotionCommander(scf) as mc: 
@@ -237,43 +244,7 @@ if __name__ == '__main__':
 
                 for _ in range(50):
                     cf.commander.send_hover_setpoint(0,0,0,height)
-                    print('i am hovering')
                     time.sleep(0.1)
-
-                # get the starting point and target point from Optitrack
-                topic_name = '/optitrack/rigid_bodies'
-                startData = getStartData(topic_name)
-                targetData = getTargetData(topic_name)
-
-                # shift the coordinate system so startPos is the origin
-                # get targetPos relative to startPos
-                adjStartPos = adjustStart(startData,targetData)
-                adjTargetPos = adjustTarget(targetData)
-
-                print('start pos')
-                print(startData)
-                print('target pos')
-                print(targetData)
-
-                print('adj start pos') 
-                print(adjStartPos)
-                print('adj target pos')
-                print(adjTargetPos)
-
-                # yaw = startData[3]
-                # rate = 10.0 # deg/sec 
-                # print('yaw')
-                # print(yaw)
-
-                # run the trajectory planner
-                tf = 10.0 # [s] elapsed time
-                dt = 0.5 # [s] timestep
-
-                # rotate so the Crazyflie is aligned to the Optitrack system
-                # mc.turn_left(yaw,rate)                
-
-                followTrajectory(tf,dt,adjStartPos,adjTargetPos)
-
 
     except rospy.ROSInterruptException:
         pass
