@@ -22,8 +22,9 @@ def meetingPoint(droneVel, ugvVel, dronePos, ugvPos):
 
 	# calculate azimuth and zenith angles
 	phi = math.atan2(dy,dx)
-	theta = math.atan2(dz,dy)
-	print('phi = ', phi, 'theta = ', theta)
+	dxy = math.sqrt((dx**2) + (dy**2))
+	theta = math.atan2(dz,dxy)
+	# print('phi = ', phi, 'theta = ', theta)
 
 	# calculate net distance to travel
 	dist = math.sqrt((dx**2) + (dy**2) + (dz**2))
@@ -43,19 +44,19 @@ def meetingPoint(droneVel, ugvVel, dronePos, ugvPos):
 	# drone
 	droneZi = droneDist * math.sin(theta)
 	drone_distxy = droneDist * math.cos(theta)
-	print('drone dist xy = ', drone_distxy)
+	# print('drone dist xy = ', drone_distxy)
 	droneXi = drone_distxy * math.cos(phi)
 	droneYi = drone_distxy * math.sin(phi)
 
 	# ugv
 	ugvZi = ugvDist * math.sin(theta)
 	ugv_distxy = ugvDist * math.cos(theta)
-	print('ugv dist xy = ', ugv_distxy)
+	# print('ugv dist xy = ', ugv_distxy)
 	ugvXi = ugv_distxy * math.cos(phi)
 	ugvYi = ugv_distxy * math.sin(phi)
 
-	print('##drone dx = ', droneXi, 'drone dy = ', droneYi, 'drone dz = ', droneZi)
-	print('##ugv dx = ', ugvXi, 'ugv dy = ', ugvYi, 'ugv dz = ', ugvZi)
+	# print('##drone dx = ', droneXi, 'drone dy = ', droneYi, 'drone dz = ', droneZi)
+	# print('##ugv dx = ', ugvXi, 'ugv dy = ', ugvYi, 'ugv dz = ', ugvZi)
 
 	# add distances to current positions
 	# SUBTRACT distance from DRONE
@@ -67,31 +68,33 @@ def meetingPoint(droneVel, ugvVel, dronePos, ugvPos):
 	ugvY = ugvPos[1] + ( ugvYi)
 	ugvZ = ugvPos[2] + ( ugvZi)
 
-	print('drone dx = ', droneX, 'drone dy = ', droneY, 'drone dz = ', droneZ)
-	print('ugv dx = ', ugvX, 'ugv dy = ', ugvY, 'ugv dz = ', ugvZ)
+	# print('drone dx = ', droneX, 'drone dy = ', droneY, 'drone dz = ', droneZ)
+	# print('ugv dx = ', ugvX, 'ugv dy = ', ugvY, 'ugv dz = ', ugvZ)
 
 	# plot current and destination points for each vehicle
 	fig = plt.figure()
-	ax1 = fig.add_subplot(211, projection='3d')
-	ax1.scatter(dronePos[0], dronePos[1], dronePos[2],c='blue')
-	ax1.scatter(ugvPos[0], ugvPos[1], ugvPos[2],c='green')
-	ax1.scatter(droneX, droneY, droneZ,c='blue')
-	ax1.scatter(ugvX, ugvY, ugvZ,c='green')
-	ax1.set_xlabel('X')
-	ax1.set_ylabel('Y')
+	ax1 = fig.add_subplot(111, projection='3d')
+	ax1.scatter(dronePos[0], dronePos[1], dronePos[2],c='blue',label='Drone Start Point')
+	ax1.scatter(ugvPos[0], ugvPos[1], ugvPos[2],c='green',label='Turtlebot Start Point')
+	ax1.scatter(droneX, droneY, droneZ,c='red',label='Meeting Point')
+	ax1.scatter(ugvX, ugvY, ugvZ,c='red')
+	ax1.set_xlabel('X (m)')
+	ax1.set_ylabel('Y (m)')
+	ax1.set_zlabel('Z (m)')
+	ax1.set_title('Optimal Meeting Point for Two Vehicles in 3D Space (Turtlebot Faster)')
+	ax1.legend(loc = 'center left') 
 	plt.show()
 	# return desired target points for each vehicle as x,y,z components
-	return [droneX,droneY,droneZ,ugvX,ugvY,ugvZ]
+	return [droneX,droneY,ugvX,ugvY]
 
 if __name__ == '__main__':
 
-	droneVel = -0.4 
-	ugvVel = 0.4
+	droneVel = -0.1 
+	ugvVel = 0.5
 	dronePos = [1.0,1.0,1.0]
 	ugvPos = [0.0,0.0,0.0]
 
 	#print('drone vel = ', droneVel, ' ugvVel = ', ugvVel)
 	point = meetingPoint(droneVel, ugvVel, dronePos, ugvPos)
 
-	#print('dx = ', point[0], ' dy = ', point[1], ' dz = ', point[2], 'ux = ', point[3], ' uy = ', point[4], ' uz = ', point[5 ]) 
-
+	print('dx = ', point[0], ' dy = ', point[1], 'ux = ', point[3], ' uy = ', point[4]) 
